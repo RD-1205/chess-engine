@@ -1,8 +1,10 @@
 package com.example.chess.api;
 
+import com.example.chess.ChessAI;
 import com.example.chess.Game;
 import com.example.chess.api.dto.MoveDTO;
 import com.example.chess.api.dto.GameStateDTO;
+import com.example.chess.engine.Color;
 import com.example.chess.engine.Position;
 import com.example.chess.engine.Move;
 import org.springframework.web.bind.annotation.*;
@@ -118,6 +120,35 @@ public class ChessController {
         return ResponseEntity.ok(state);
     }
     
+    @PostMapping("/game/{gameId}/ai-move")
+    public ResponseEntity<?> makeAIMove(
+            @PathVariable String gameId,
+            @RequestParam(defaultValue = "BLACK") String color) {
+
+        Game game = activeGames.get(gameId);
+        if (game == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "Game not found"));
+        }
+
+        Color aiColor = "WHITE".equalsIgnoreCase(color) ? Color.WHITE : Color.BLACK;
+        ChessAI ai    = new ChessAI(3); // depth-3 minimax with alpha-beta pruning
+
+        Move bestMove = ai.findBestMove(game, aiColor);
+        if (bestMove == null) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "No legal moves available for " + color));
+        }
+
+        boolean success = game.makeMove(bestMove);
+        if (!success) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "AI selected an invalid move — this should not happen"));
+        }
+
+        return ResponseEntity.ok(new GameStateDTO(game));
+    }
+
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
         Map<String, Object> health = new HashMap<>();

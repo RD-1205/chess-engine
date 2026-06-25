@@ -27,7 +27,7 @@ public class Game {
         return board;
     }
 
-    // API needs getCurrentPlayer() not getCurrentTurn()
+
     public Color getCurrentPlayer() {
         return currentTurn;
     }
@@ -44,12 +44,12 @@ public class Game {
         return winner;
     }
 
-    // API needs this method
+
     public boolean isInCheck() {
         return isInCheck(currentTurn);
     }
 
-    // API needs this method
+
     public boolean isCheckmate() {
         if (!isInCheck(currentTurn)) {
             return false;
@@ -57,7 +57,7 @@ public class Game {
         return !hasAnyLegalMoves(currentTurn);
     }
 
-    // API needs this method
+   
     public boolean isStalemate() {
         if (isInCheck(currentTurn)) {
             return false;
@@ -65,17 +65,17 @@ public class Game {
         return !hasAnyLegalMoves(currentTurn);
     }
 
-    // API needs makeMove(Move) not makeMove(Position, Position)
+ 
     public boolean makeMove(Move move) {
         return makeMove(move.from, move.to);
     }
 
-    // API needs getValidMoves(Position) not getLegalMoves(Position)
+ 
     public List<Position> getValidMoves(Position position) {
         return getLegalMoves(position);
     }
 
-    // API needs reset()
+ 
     public void reset() {
         board.clear();
         currentTurn = Color.WHITE;
@@ -168,6 +168,54 @@ public class Game {
 
     public Piece getPieceAt(Position position) {
         return board.getPiece(position);
+    }
+
+    // ── AI search helpers ────────────────────────────────────────────────────
+
+    /**
+     * Returns all legal moves for a given color without altering game state.
+     * Used by ChessAI during minimax search.
+     */
+    public java.util.List<Move> getAllLegalMovesForColor(Color color) {
+        java.util.List<Move> allMoves = new java.util.ArrayList<>();
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Position pos = new Position(row, col);
+                Piece piece = board.getPiece(pos);
+                if (piece == null || piece.getColor() != color) continue;
+                for (Move move : piece.getLegalMoves(board, pos)) {
+                    Piece captured = applyMoveForSearch(move);
+                    boolean inCheck = isInCheck(color);
+                    undoMoveForSearch(move, captured);
+                    if (!inCheck) allMoves.add(move);
+                }
+            }
+        }
+        return allMoves;
+    }
+
+    /**
+     * Applies a move for search purposes without calling markMoved(),
+     * so castling rights in the real game are never corrupted.
+     */
+    Piece applyMoveForSearch(Move move) {
+        Piece piece = board.getPiece(move.from);
+        Piece captured = board.getPiece(move.to);
+        board.setPiece(move.to, piece);
+        board.setPiece(move.from, null);
+        return captured;
+    }
+
+    /** Restores a move made via applyMoveForSearch. */
+    void undoMoveForSearch(Move move, Piece captured) {
+        Piece piece = board.getPiece(move.to);
+        board.setPiece(move.from, piece);
+        board.setPiece(move.to, captured);
+    }
+
+    /** Temporarily overrides the current turn — used by minimax to walk the search tree. */
+    void setCurrentTurn(Color color) {
+        this.currentTurn = color;
     }
 
     public Piece[][] getBoardInstance() {

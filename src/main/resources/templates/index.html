@@ -3,40 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chess Game</title>
+    <title>Chess</title>
     <link rel="stylesheet" th:href="@{/static/css/styles.css}">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>♟️ Chess Game</h1>
-            <div>
-                <span id="status-indicator" class="status-dot"></span>
-                <span id="status-text">Connecting...</span>
+
+<!-- ═══════════════════════════════════════════════════════
+     LANDING SCREEN
+═══════════════════════════════════════════════════════ -->
+<div id="landing-screen" class="landing-screen">
+    <div class="landing-card">
+        <div class="landing-logo">♟ Chess</div>
+        <p class="landing-sub">Choose your mode and time control</p>
+
+        <h3 class="section-label">Game Mode</h3>
+        <div class="mode-buttons">
+            <button class="mode-btn active" data-mode="local">
+                <span class="mode-icon">👥</span>
+                <span class="mode-label">Local 2 Players</span>
+                <span class="mode-desc">Same device</span>
+            </button>
+            <button class="mode-btn" data-mode="computer">
+                <span class="mode-icon">🤖</span>
+                <span class="mode-label">vs Computer</span>
+                <span class="mode-desc">Random AI</span>
+            </button>
+            <button class="mode-btn" data-mode="online">
+                <span class="mode-icon">🌐</span>
+                <span class="mode-label">Play with Friend</span>
+                <span class="mode-desc">Share a code</span>
+            </button>
+        </div>
+
+        <!-- Online multiplayer sub-options -->
+        <div id="online-options" class="online-options hidden">
+            <div class="online-tabs">
+                <button class="tab-btn active" data-tab="create">Create Room</button>
+                <button class="tab-btn" data-tab="join">Join Room</button>
             </div>
-        </header>
-        
-        <div class="game-container">
-            <aside>
-                <div class="info-card">
-                    <h2>Game Info</h2>
-                    <p><strong>Turn:</strong> <span id="current-turn">White</span></p>
-                    <p><strong>Status:</strong> <span id="game-status">Active</span></p>
-                    <div id="check-warning" class="hidden" style="background: #fef3c7; padding: 10px; margin-top: 10px; border-radius: 5px;">⚠️ Check!</div>
+            <div id="create-tab" class="tab-content">
+                <p class="hint">Start a game, share the code with your friend.</p>
+                <div id="share-code-box" class="share-code-box hidden">
+                    <span class="share-label">Room Code:</span>
+                    <strong id="share-code-text"></strong>
+                    <button id="copy-code-btn" class="icon-btn" title="Copy">📋</button>
                 </div>
-                <button id="new-game-btn" class="btn btn-primary">New Game</button>
-                <button id="reset-game-btn" class="btn btn-secondary">Reset Game</button>
-            </aside>
-            
-            <main class="board-container">
-                <div id="chessboard" class="chessboard"></div>
-                <div id="message" class="message"></div>
-            </main>
+                <button id="create-room-btn" class="btn-action">Create Room</button>
+            </div>
+            <div id="join-tab" class="tab-content hidden">
+                <input id="join-code-input" type="text" placeholder="Paste room code…" class="code-input" maxlength="40">
+                <button id="join-room-btn" class="btn-action">Join Room</button>
+            </div>
+        </div>
+
+        <h3 class="section-label">Time Control</h3>
+        <div class="time-controls">
+            <button class="time-btn" data-minutes="1">1 min</button>
+            <button class="time-btn" data-minutes="2">2 min</button>
+            <button class="time-btn active" data-minutes="5">5 min</button>
+            <button class="time-btn" data-minutes="10">10 min</button>
+            <button class="time-btn" data-minutes="15">15 min</button>
+            <button class="time-btn" data-minutes="30">30 min</button>
+            <button class="time-btn" data-minutes="0">∞</button>
+        </div>
+
+        <button id="start-game-btn" class="btn-start">Start Game</button>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MAIN GAME SCREEN
+═══════════════════════════════════════════════════════ -->
+<div id="game-screen" class="game-screen hidden">
+
+    <!-- Header -->
+    <header class="game-header">
+        <button id="back-to-menu-btn" class="header-logo" title="Main Menu">♟ Chess</button>
+        <div class="header-center">
+            <span id="game-mode-label" class="badge"></span>
+            <span id="time-control-label" class="badge badge-alt"></span>
+        </div>
+        <div class="header-right">
+            <span class="status-dot" id="status-indicator"></span>
+            <span id="status-text" class="status-text">Connecting…</span>
+        </div>
+    </header>
+
+    <!-- Game layout -->
+    <div class="game-layout">
+
+        <!-- ── Board Column ── -->
+        <div class="board-column">
+
+            <!-- Black player -->
+            <div class="player-panel" id="black-panel">
+                <div class="player-info">
+                    <span class="player-avatar black-avatar">♚</span>
+                    <div class="player-details">
+                        <span class="player-name" id="black-player-name">Black</span>
+                        <div class="captures-row" id="black-captures"></div>
+                    </div>
+                </div>
+                <div class="timer" id="black-timer">—</div>
+            </div>
+
+            <!-- Board with coordinates -->
+            <div class="board-wrapper">
+                <div class="rank-labels" id="rank-labels">
+                    <span>8</span><span>7</span><span>6</span>
+                    <span>5</span><span>4</span><span>3</span>
+                    <span>2</span><span>1</span>
+                </div>
+                <div class="board-and-files">
+                    <div id="chessboard" class="chessboard"></div>
+                    <div class="file-labels" id="file-labels">
+                        <span>a</span><span>b</span><span>c</span><span>d</span>
+                        <span>e</span><span>f</span><span>g</span><span>h</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- White player -->
+            <div class="player-panel active-player" id="white-panel">
+                <div class="player-info">
+                    <span class="player-avatar white-avatar">♔</span>
+                    <div class="player-details">
+                        <span class="player-name" id="white-player-name">White</span>
+                        <div class="captures-row" id="white-captures"></div>
+                    </div>
+                </div>
+                <div class="timer" id="white-timer">—</div>
+            </div>
+        </div>
+
+        <!-- ── Side Panel ── -->
+        <div class="side-panel">
+
+            <!-- Status / alerts -->
+            <div class="status-panel">
+                <div id="game-status-display" class="game-status-text">Setting up…</div>
+                <div id="premove-indicator" class="premove-indicator hidden">
+                    Pre-move queued
+                    <button id="cancel-premove-btn" class="cancel-premove" title="Cancel pre-move">✕</button>
+                </div>
+                <div id="online-room-info" class="online-room-info hidden">
+                    Code: <strong id="room-code-display"></strong>
+                    <button id="copy-room-code-btn" class="icon-btn">📋</button>
+                    <div id="waiting-text" class="waiting-text">Waiting for opponent…</div>
+                </div>
+            </div>
+
+            <!-- Move log -->
+            <div class="move-log-panel">
+                <div class="panel-title">
+                    Move Log
+                    <span id="move-count-badge" class="move-count">0</span>
+                </div>
+                <div id="move-log" class="move-log"></div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls-panel">
+                <button id="flip-board-btn" class="ctrl-btn" title="Flip board">⟲ Flip</button>
+                <button id="draw-btn"       class="ctrl-btn" title="Offer draw">½ Draw</button>
+                <button id="resign-btn"     class="ctrl-btn danger-btn" title="Resign">⚑ Resign</button>
+                <button id="new-game-btn"   class="ctrl-btn accent-btn" title="New game">✚ New</button>
+            </div>
         </div>
     </div>
-    
-    <script th:src="@{/static/js/chess-api.js}"></script>
-    <script th:src="@{/static/js/chess-ui.js}"></script>
-    <script th:src="@{/static/js/app.js}"></script>
+
+    <!-- Toast message -->
+    <div id="game-message" class="game-message hidden"></div>
+
+    <!-- ── Game Over Overlay ── -->
+    <div id="game-over-overlay" class="overlay hidden">
+        <div class="overlay-card">
+            <div id="game-over-icon" class="overlay-icon">♛</div>
+            <h2 id="game-over-title">Game Over</h2>
+            <p id="game-over-message" class="overlay-msg"></p>
+            <div class="overlay-btns">
+                <button id="rematch-btn"   class="btn-primary">Rematch</button>
+                <button id="main-menu-btn" class="btn-secondary">Main Menu</button>
+            </div>
+        </div>
+    </div>
+
+</div><!-- #game-screen -->
+
+<script th:src="@{/static/js/chess-api.js}"></script>
+<script th:src="@{/static/js/chess-ui.js}"></script>
+<script th:src="@{/static/js/app.js}"></script>
 </body>
 </html>

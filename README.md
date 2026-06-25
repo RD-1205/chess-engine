@@ -150,4 +150,3 @@ Got questions? Found a bug? Want to collaborate on beating Chess.com?
 
 ⭐ **If this project impressed you, give it a star!** ⭐
 
-*PS: Chess.com, if you're reading this, my DMs are open. Let's talk.* 😉
